@@ -95,6 +95,7 @@ impl GoBoard {
             if self.get(q) == target {
                 if captures.iter().any(|&x| x == q) == false {
                     if self.count_liberties(q) == 0 {
+                        captures.push(q);
                         self.get_group(target, q, &mut captures);
                     }
                 }
