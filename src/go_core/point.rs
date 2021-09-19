@@ -1,19 +1,15 @@
-use std::ops::Add;
 use core::fmt::{Display, Formatter, Result};
+use std::ops::Add;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Point
-{
+pub struct Point {
     pub x: i32,
     pub y: i32,
 }
 
 impl Point {
     pub fn new(x: i32, y: i32) -> Point {
-        Point {
-            x,
-            y,
-        }
+        Point { x, y }
     }
 }
 

@@ -15,8 +15,7 @@ fn test_get_adjacent() {
 }
 
 #[test]
-fn test_get_group()
-{
+fn test_get_group() {
     let mut b = GoBoard::new(19);
     let mut group = Vec::new();
 
@@ -32,8 +31,7 @@ fn test_get_group()
 }
 
 #[test]
-fn test_suicide()
-{
+fn test_suicide() {
     let mut b = GoBoard::new(19);
     b.place(Point::new(1, 0));
     b.place(Point::new(5, 5));
@@ -44,15 +42,17 @@ fn test_suicide()
 }
 
 #[test]
-fn test_capture()
-{
-    let mut b = GoBoard::from_str("
+fn test_capture() {
+    let mut b = GoBoard::from_str(
+        "
     .....
     .BBB.
     BWWW.
     .BBB.
     .....
-    ", CellState::Black);
+    ",
+        CellState::Black,
+    );
     b.place(Point::new(4, 2));
 
     assert_eq!(b.get(Point::new(1, 2)), CellState::None);

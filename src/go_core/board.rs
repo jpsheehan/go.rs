@@ -1,21 +1,17 @@
 use crate::go_core::*;
 
-pub struct GoBoard
-{
+pub struct GoBoard {
     cells: Vec<Vec<CellState>>,
     pub turn: CellState,
-    pub size: usize
+    pub size: usize,
 }
 
-impl GoBoard
-{
+impl GoBoard {
     pub fn new(size: usize) -> GoBoard {
         let mut cells: Vec<Vec<CellState>> = Vec::new();
-        for _ in 0..size
-        {
+        for _ in 0..size {
             let mut row: Vec<CellState> = Vec::new();
-            for _ in 0..size
-            {
+            for _ in 0..size {
                 row.push(CellState::None);
             }
             cells.push(row);
@@ -26,7 +22,7 @@ impl GoBoard
         GoBoard {
             cells,
             size,
-            turn: CellState::Black
+            turn: CellState::Black,
         }
     }
 
@@ -46,15 +42,10 @@ impl GoBoard
         }
         let size = cells.len() as usize;
 
-        GoBoard {
-            turn,
-            size,
-            cells,
-        }
+        GoBoard { turn, size, cells }
     }
 
-    pub fn reset(&mut self)
-    {
+    pub fn reset(&mut self) {
         self.turn = CellState::Black;
         for j in 0..self.size {
             for i in 0..self.size {
@@ -63,8 +54,7 @@ impl GoBoard
         }
     }
 
-    pub fn place(self: &mut Self, p: Point)
-    {
+    pub fn place(&mut self, p: Point) {
         if p.x as usize >= self.size || p.y as usize >= self.size {
             return;
         }
@@ -78,12 +68,11 @@ impl GoBoard
             }
             self.turn = match self.turn {
                 CellState::Black => CellState::White,
-                _ => CellState::Black
+                _ => CellState::Black,
             };
             //self.print();
             //println!();
         }
-
     }
 
     fn find_captures(&self, p: Point) -> Vec<Point> {
@@ -130,24 +119,20 @@ impl GoBoard
         adjacent
     }
 
-    pub fn can_place(self: &Self, p: Point) -> bool
-    {
+    pub fn can_place(&self, p: Point) -> bool {
         match self.get(p) {
-            CellState::None => {
-                true
-            },
-            _ => false
+            CellState::None => true,
+            _ => false,
         }
     }
 
-    pub fn print(self: &Self)
-    {
+    pub fn print(&self) {
         for row in &self.cells {
             for col in row {
                 let letter = match col {
                     CellState::White => 'W',
                     CellState::Black => 'B',
-                    _ => '.'
+                    _ => '.',
                 };
                 print!("{}", letter);
             }
@@ -155,8 +140,7 @@ impl GoBoard
         }
     }
 
-    pub fn get(self: &Self, p: Point) -> CellState
-    {
+    pub fn get(&self, p: Point) -> CellState {
         self.cells[p.y as usize][p.x as usize]
     }
 
@@ -164,8 +148,7 @@ impl GoBoard
         self.cells[p.y as usize][p.x as usize] = state;
     }
 
-    fn get_liberties(self: &Self, p: Point) -> Vec<Point>
-    {
+    fn get_liberties(&self, p: Point) -> Vec<Point> {
         let mut liberties = Vec::new();
         let player = self.get(p);
         //println!("getting {}s liberties at {}", player, p);
@@ -187,8 +170,7 @@ impl GoBoard
         liberties
     }
 
-    pub fn get_group(self: &Self, start: CellState, p: Point, group: &mut Vec<Point>)
-    {
+    pub fn get_group(&self, start: CellState, p: Point, group: &mut Vec<Point>) {
         //println!("getting group of {} at {}", start, p);
         if group.len() == 0 {
             group.push(p);
@@ -203,7 +185,7 @@ impl GoBoard
         }
     }
 
-    pub fn count_liberties(self: &Self, p: Point) -> usize {
+    pub fn count_liberties(&self, p: Point) -> usize {
         self.get_liberties(p).len()
     }
 }
