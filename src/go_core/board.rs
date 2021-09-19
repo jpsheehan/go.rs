@@ -57,6 +57,10 @@ impl GoBoard {
         return self.size;
     }
 
+    pub fn get_turn(&self) -> CellState {
+        return self.turn;
+    }
+
     pub fn reset(&mut self) {
         self.turn = CellState::Black;
         self.captured_stones = vec![0, 0, 0];
@@ -68,10 +72,6 @@ impl GoBoard {
     }
 
     pub fn place(&mut self, p: Point) {
-        if p.x as usize >= self.size || p.y as usize >= self.size {
-            return;
-        }
-
         if self.can_place(p) {
             //println!("Placing {} stone at {}", self.turn, p);
             self.set(p, self.turn);
@@ -129,6 +129,10 @@ impl GoBoard {
     }
 
     pub fn can_place(&self, p: Point) -> bool {
+        if p.x as usize >= self.size || p.y as usize >= self.size {
+            return false;
+        }
+
         match self.get(p) {
             CellState::None => true,
             _ => false,
