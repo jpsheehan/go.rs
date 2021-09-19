@@ -114,13 +114,13 @@ impl GoBoard {
 
     pub fn get_adjacent(&self, p: Point) -> Vec<Point> {
         let mut adjacent = Vec::new();
-        if p.x > 1 {
+        if p.x >= 1 {
             adjacent.push(p + Point::new(-1, 0));
         }
         if p.x as usize + 1 < self.size {
             adjacent.push(p + Point::new(1, 0));
         }
-        if p.y > 1 {
+        if p.y >= 1 {
             adjacent.push(p + Point::new(0, -1));
         }
         if p.y as usize + 1 < self.size {
@@ -144,20 +144,6 @@ impl GoBoard {
         return self.captured_stones[p as usize];
     }
 
-    pub fn print(&self) {
-        for row in &self.cells {
-            for col in row {
-                let letter = match col {
-                    CellState::White => 'W',
-                    CellState::Black => 'B',
-                    _ => '.',
-                };
-                print!("{}", letter);
-            }
-            println!();
-        }
-    }
-
     pub fn get(&self, p: Point) -> CellState {
         self.cells[p.y as usize][p.x as usize]
     }
@@ -166,7 +152,7 @@ impl GoBoard {
         self.cells[p.y as usize][p.x as usize] = state;
     }
 
-    fn get_liberties(&self, p: Point) -> Vec<Point> {
+    pub fn get_liberties(&self, p: Point) -> Vec<Point> {
         let mut liberties = Vec::new();
         let player = self.get(p);
         //println!("getting {}s liberties at {}", player, p);
