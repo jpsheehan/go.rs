@@ -7,6 +7,16 @@ pub enum CellState {
     Black,
 }
 
+impl CellState {
+    pub fn get_other_player(&self) -> Self {
+        match self {
+            CellState::Black => CellState::White,
+            CellState::White => CellState::Black,
+            _ => CellState::None,
+        }
+    }
+}
+
 impl Display for CellState {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(

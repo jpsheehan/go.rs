@@ -2,8 +2,9 @@ use crate::go_core::*;
 
 pub struct GoBoard {
     cells: Vec<Vec<CellState>>,
-    pub turn: CellState,
-    pub size: usize,
+    turn: CellState,
+    size: usize,
+    captured_stones: Vec<i32>,
 }
 
 impl GoBoard {
@@ -17,11 +18,12 @@ impl GoBoard {
             cells.push(row);
         }
 
-        // let mut captures = Map
+        let captured_stones = vec![0, 0, 0];
 
         GoBoard {
             cells,
             size,
+            captured_stones,
             turn: CellState::Black,
         }
     }
@@ -41,12 +43,19 @@ impl GoBoard {
             cells.push(row);
         }
         let size = cells.len() as usize;
+        let captured_stones = vec![0, 0, 0];
 
-        GoBoard { turn, size, cells }
+        GoBoard {
+            turn,
+            size,
+            cells,
+            captured_stones,
+        }
     }
 
     pub fn reset(&mut self) {
         self.turn = CellState::Black;
+        self.captured_stones = vec![0, 0, 0];
         for j in 0..self.size {
             for i in 0..self.size {
                 self.set(Point::new(i as i32, j as i32), CellState::None);
@@ -62,24 +71,20 @@ impl GoBoard {
         if self.can_place(p) {
             //println!("Placing {} stone at {}", self.turn, p);
             self.set(p, self.turn);
-            for q in self.find_captures(p) {
+            for q in self.find_captured_stones(p) {
                 //println!("removing {} stone at {}", self.get(q), q);
+                let owner = self.get(q);
+                self.captured_stones[owner.get_other_player() as usize] += 1;
                 self.set(q, CellState::None);
             }
-            self.turn = match self.turn {
-                CellState::Black => CellState::White,
-                _ => CellState::Black,
-            };
+            self.turn = self.turn.get_other_player();
             //self.print();
             //println!();
         }
     }
 
-    fn find_captures(&self, p: Point) -> Vec<Point> {
-        let target = match self.turn {
-            CellState::Black => CellState::White,
-            _ => CellState::Black,
-        };
+    fn find_captured_stones(&self, p: Point) -> Vec<Point> {
+        let target = self.turn.get_other_player();
 
         let mut captures = Vec::new();
         for q in self.get_adjacent(p) {
@@ -124,6 +129,10 @@ impl GoBoard {
             CellState::None => true,
             _ => false,
         }
+    }
+
+    pub fn get_captured_stones(&self, p: CellState) -> i32 {
+        return self.captured_stones[p as usize];
     }
 
     pub fn print(&self) {
@@ -172,6 +181,9 @@ impl GoBoard {
 
     pub fn get_group(&self, start: CellState, p: Point, group: &mut Vec<Point>) {
         //println!("getting group of {} at {}", start, p);
+        if self.get(p) == CellState::None {
+            return;
+        }
         if group.len() == 0 {
             group.push(p);
         }

@@ -16,18 +16,32 @@ fn test_get_adjacent() {
 
 #[test]
 fn test_get_group() {
-    let mut b = GoBoard::new(19);
+    let mut b = GoBoard::from_str(
+        "
+    .....
+    ..b..
+    ..b..
+    .....
+    .....
+    ",
+        CellState::White,
+    );
     let mut group = Vec::new();
 
-    b.place(Point::new(5, 5));
-    b.get_group(CellState::Black, Point::new(5, 5), &mut group);
-    assert_eq!(group.len(), 1);
-
-    b.turn = CellState::Black;
-    group.clear();
-    b.place(Point::new(5, 6));
-    b.get_group(CellState::Black, Point::new(5, 5), &mut group);
+    b.get_group(CellState::Black, Point::new(2, 2), &mut group);
     assert_eq!(group.len(), 2);
+
+    b.place(Point::new(4, 4)); // move white somewhere out of the way
+    group.clear();
+
+    b.place(Point::new(3, 2));
+    b.get_group(CellState::Black, Point::new(2, 2), &mut group);
+    assert_eq!(group.len(), 3);
+
+    // check a non-group
+    group.clear();
+    b.get_group(CellState::Black, Point::new(3, 1), &mut group);
+    assert_eq!(group.len(), 0);
 }
 
 #[test]
