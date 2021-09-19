@@ -53,6 +53,10 @@ impl GoBoard {
         }
     }
 
+    pub fn get_size(&self) -> usize {
+        return self.size;
+    }
+
     pub fn reset(&mut self) {
         self.turn = CellState::Black;
         self.captured_stones = vec![0, 0, 0];
