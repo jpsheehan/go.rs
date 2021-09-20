@@ -93,7 +93,7 @@ impl State {
                 }
                 // ctx.print(0, 0, format!("{} S, {} L", group.len(), liberties));
             } else {
-                for b in self.game.get_territory(p) {
+                for b in self.game.get_boundary(p) {
                     ctx.add_sprite(
                         Rect::with_size((b.x + 1) * 32, (b.y + 1) * 32, 32, 32),
                         0,

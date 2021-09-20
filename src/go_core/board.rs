@@ -263,4 +263,20 @@ impl Board {
             }
         }
     }
+
+    pub fn get_boundary(&self, p: Point) -> Vec<Point> {
+        let territory = self.get_territory(p);
+        let mut boundary = Vec::new();
+        for t in &territory {
+            if self
+                .get_adjacent(*t)
+                .iter()
+                .all(|&x| territory.iter().any(|&y| y == x))
+                == false
+            {
+                boundary.push(*t);
+            }
+        }
+        boundary
+    }
 }
