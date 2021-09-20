@@ -50,7 +50,14 @@ impl State {
         }
 
         ctx.set_active_console(CONSOLE_SIMPLE);
-        ctx.cls();
+        ctx.cls_bg(RGBA::from_f32(1.0, 1.0, 1.0, 1.0));
+
+        // if ctx.shift {
+        //     for y in 0..self.game.get_size() {
+        //         ctx.print_color(0, self.game.get_size() as i32 - y as i32 - 1, RGBA::from_f32(0.0, 0.0, 0.0, 1.0), RGBA::from_f32(1.0, 1.0, 1.0, 1.0), format!("{}", y + 1));
+        //     }
+        // }
+
         self.render_board(ctx);
         self.render_stones(ctx);
         self.render_ghost(ctx);
@@ -136,10 +143,19 @@ impl State {
                     idx = SPR_SOUTH;
                 } else {
                     if self.game.get_size() == 19 {
-                        if ((x == 3 || x == 9 || x == 15) && y == 3)
-                            || ((x == 3 || x == 9 || x == 15) && y == 9)
-                            || ((x == 3 || x == 9 || x == 15) && y == 15)
-                        {
+                        if (x == 3 || x == 9 || x == 15) && (y == 3 || y == 9 || y == 15) {
+                            idx = SPR_CROSS_DOT;
+                        }
+                    } else if self.game.get_size() == 13 {
+                        if ((x == 3 || x == 9) && (y == 3 || y == 9)) || (x == 6 && y == 6) {
+                            idx = SPR_CROSS_DOT;
+                        }
+                    } else if self.game.get_size() == 9 {
+                        if (x == 2 || x == 6) && (y == 2 || y == 6) {
+                            idx = SPR_CROSS_DOT;
+                        }
+                    } else if self.game.get_size() == 5 {
+                        if x == 2 && y == 2 {
                             idx = SPR_CROSS_DOT;
                         }
                     }
@@ -178,29 +194,18 @@ impl State {
     }
 }
 
-const DISPLAY_WIDTH: usize = 672;
-const DISPLAY_HEIGHT: usize = 672;
+const BOARD_SIZE: usize = 13;
+const DISPLAY_WIDTH: usize = (BOARD_SIZE + 2) * 32;
+const DISPLAY_HEIGHT: usize = (BOARD_SIZE + 2) * 32;
 
 fn main() -> BError {
-    let mut board = Board::new(19);
-    board.place(GPoint::new(2, 2));
-    board.place(GPoint::new(2, 3));
-    board.place(GPoint::new(2, 3));
-    board.place(GPoint::new(3, 3));
-    board.place(GPoint::new(4, 4));
-    board.place(GPoint::new(1, 3));
-    board.place(GPoint::new(5, 5));
-    board.place(GPoint::new(2, 4));
-    // board.print();
-    let context = BTermBuilder::simple(21, 21)?
-        .with_title("Go")
+    let board = Board::new(BOARD_SIZE);
+    let context = BTermBuilder::simple(BOARD_SIZE + 2, BOARD_SIZE + 2)?
+        .with_title(format!("Go {}x{}", BOARD_SIZE, BOARD_SIZE))
         .with_tile_dimensions(32, 32)
-        //.with_resource_path("resources/")
-        //.with_font("terminal8x8.png", 8, 8)
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0)
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0)
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0)
-        //.with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "terminal8x8.png")
+        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // board
+        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // stones
+        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // overlay
         .with_sprite_sheet(
             SpriteSheet::new("resources/board_lines.png")
                 .add_sprite(Rect::with_size(0, 96, 32, 32))
