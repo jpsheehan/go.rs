@@ -2,7 +2,7 @@ use crate::go_core::*;
 
 #[test]
 fn test_get_adjacent() {
-    let mut b = GoBoard::new(19);
+    let mut b = Board::new(19);
 
     b.place(Point::new(0, 0));
     assert_eq!(b.get_adjacent(Point::new(0, 0)).len(), 2);
@@ -16,7 +16,7 @@ fn test_get_adjacent() {
 
 #[test]
 fn test_get_group() {
-    let mut b = GoBoard::from_str(
+    let mut b = Board::from_str(
         "
     .....
     ..b..
@@ -46,7 +46,7 @@ fn test_get_group() {
 
 #[test]
 fn test_suicide() {
-    let mut b = GoBoard::new(19);
+    let mut b = Board::new(19);
     b.place(Point::new(1, 0));
     b.place(Point::new(5, 5));
     b.place(Point::new(0, 1));
@@ -57,7 +57,7 @@ fn test_suicide() {
 
 #[test]
 fn test_capture() {
-    let mut b = GoBoard::from_str(
+    let mut b = Board::from_str(
         "
     .....
     .BBB.

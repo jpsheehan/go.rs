@@ -1,15 +1,16 @@
 use crate::go_core::*;
 
-pub struct GoBoard {
+pub struct Board {
     cells: Vec<Vec<CellState>>,
     turn: CellState,
     size: usize,
     captured_stones: Vec<i32>,
     ko: Option<Point>,
+    pub allow_suicide: bool,
 }
 
-impl GoBoard {
-    pub fn new(size: usize) -> GoBoard {
+impl Board {
+    pub fn new(size: usize) -> Board {
         let mut cells: Vec<Vec<CellState>> = Vec::new();
         for _ in 0..size {
             let mut row: Vec<CellState> = Vec::new();
@@ -21,16 +22,17 @@ impl GoBoard {
 
         let captured_stones = vec![0, 0, 0];
 
-        GoBoard {
+        Board {
             cells,
             size,
             captured_stones,
             turn: CellState::Black,
             ko: None,
+            allow_suicide: false,
         }
     }
 
-    pub fn from_str(s: &str, turn: CellState) -> GoBoard {
+    pub fn from_str(s: &str, turn: CellState) -> Board {
         let mut cells = Vec::new();
 
         for line in s.trim().lines() {
@@ -47,12 +49,13 @@ impl GoBoard {
         let size = cells.len() as usize;
         let captured_stones = vec![0, 0, 0];
 
-        GoBoard {
+        Board {
             turn,
             size,
             cells,
             captured_stones,
             ko: None,
+            allow_suicide: false,
         }
     }
 
@@ -67,6 +70,7 @@ impl GoBoard {
     pub fn reset(&mut self) {
         self.turn = CellState::Black;
         self.captured_stones = vec![0, 0, 0];
+        self.ko = None;
         for j in 0..self.size {
             for i in 0..self.size {
                 self.set(Point::new(i as i32, j as i32), CellState::None);
@@ -151,7 +155,13 @@ impl GoBoard {
         }
 
         match self.get(p) {
-            CellState::None => true,
+            CellState::None => {
+                if self.allow_suicide {
+                    true
+                } else {
+                    !self.is_move_suicidal(p)
+                }
+            }
             _ => false,
         }
     }
@@ -214,5 +224,23 @@ impl GoBoard {
 
     pub fn is_in_atari(&self, p: Point) -> bool {
         self.count_liberties(p) == 1
+    }
+
+    fn is_move_suicidal(&self, p: Point) -> bool {
+        let adjacents = self.get_adjacent(p);
+        let other_player = self.turn.get_other_player();
+        // attempt to find empty points or opponent's stones in atari
+        // within the adjacent points
+        for q in adjacents {
+            let stone = self.get(q);
+            if stone == CellState::None {
+                return false;
+            } else if stone == other_player && self.is_in_atari(q) {
+                return false;
+            } else if stone == self.turn && !self.is_in_atari(q) {
+                return false;
+            }
+        }
+        return true;
     }
 }

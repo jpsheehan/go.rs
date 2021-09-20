@@ -26,7 +26,7 @@ const SPR_WHITE: usize = 14;
 const SPR_BLACK: usize = 15;
 
 struct State {
-    game: GoBoard,
+    game: Board,
 }
 
 impl GameState for State {
@@ -42,6 +42,11 @@ impl State {
             if self.game.can_place(p) {
                 self.game.place(p);
             }
+        }
+        if ctx.control {
+            self.game.allow_suicide = true;
+        } else {
+            self.game.allow_suicide = false;
         }
 
         ctx.set_active_console(CONSOLE_SIMPLE);
@@ -177,7 +182,7 @@ const DISPLAY_WIDTH: usize = 672;
 const DISPLAY_HEIGHT: usize = 672;
 
 fn main() -> BError {
-    let mut board = GoBoard::new(19);
+    let mut board = Board::new(19);
     board.place(GPoint::new(2, 2));
     board.place(GPoint::new(2, 3));
     board.place(GPoint::new(2, 3));
