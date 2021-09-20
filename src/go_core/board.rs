@@ -5,6 +5,7 @@ pub struct GoBoard {
     turn: CellState,
     size: usize,
     captured_stones: Vec<i32>,
+    ko: Option<Point>,
 }
 
 impl GoBoard {
@@ -25,6 +26,7 @@ impl GoBoard {
             size,
             captured_stones,
             turn: CellState::Black,
+            ko: None,
         }
     }
 
@@ -50,6 +52,7 @@ impl GoBoard {
             size,
             cells,
             captured_stones,
+            ko: None,
         }
     }
 
@@ -75,11 +78,18 @@ impl GoBoard {
         if self.can_place(p) {
             //println!("Placing {} stone at {}", self.turn, p);
             self.set(p, self.turn);
-            for q in self.find_captured_stones(p) {
+            let captured_stones = self.find_captured_stones(p);
+            let num_captured_stones = captured_stones.len();
+            for q in &captured_stones {
                 //println!("removing {} stone at {}", self.get(q), q);
-                let owner = self.get(q);
+                let owner = self.get(*q);
                 self.captured_stones[owner.get_other_player() as usize] += 1;
-                self.set(q, CellState::None);
+                self.set(*q, CellState::None);
+            }
+            if num_captured_stones == 1 && self.is_in_atari(p) {
+                self.ko = Some(captured_stones[0]);
+            } else {
+                self.ko = None;
             }
             self.turn = self.turn.get_other_player();
             //self.print();
@@ -132,6 +142,12 @@ impl GoBoard {
     pub fn can_place(&self, p: Point) -> bool {
         if p.x as usize >= self.size || p.y as usize >= self.size {
             return false;
+        }
+
+        if let Some(ko) = self.ko {
+            if ko == p {
+                return false;
+            }
         }
 
         match self.get(p) {
@@ -194,5 +210,9 @@ impl GoBoard {
 
     pub fn count_liberties(&self, p: Point) -> usize {
         self.get_liberties(p).len()
+    }
+
+    pub fn is_in_atari(&self, p: Point) -> bool {
+        self.count_liberties(p) == 1
     }
 }
