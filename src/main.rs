@@ -21,7 +21,7 @@ const SPR_NORTHEAST: usize = 9;
 const SPR_RED: usize = 10;
 const SPR_BLUE: usize = 11;
 //const SPR_GREEN: usize = 12;
-//const SPR_PINK: usize = 13;
+const SPR_PINK: usize = 13;
 const SPR_WHITE: usize = 14;
 const SPR_BLACK: usize = 15;
 
@@ -92,6 +92,15 @@ impl State {
                     );
                 }
                 // ctx.print(0, 0, format!("{} S, {} L", group.len(), liberties));
+            } else {
+                for b in self.game.get_territory(p) {
+                    ctx.add_sprite(
+                        Rect::with_size((b.x + 1) * 32, (b.y + 1) * 32, 32, 32),
+                        0,
+                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+                        SPR_PINK,
+                    );
+                }
             }
         }
     }

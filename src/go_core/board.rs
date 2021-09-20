@@ -243,4 +243,24 @@ impl Board {
         }
         return true;
     }
+
+    pub fn get_territory(&self, p: Point) -> Vec<Point> {
+        let mut boundaries = Vec::new();
+        if self.get(p) == CellState::None {
+            boundaries.push(p);
+            self._get_territory(p, &mut boundaries);
+        }
+        boundaries
+    }
+
+    fn _get_territory(&self, p: Point, boundaries: &mut Vec<Point>) {
+        for q in self.get_adjacent(p) {
+            if self.get(q) == CellState::None {
+                if boundaries.iter().any(|&x| x == q) == false {
+                    boundaries.push(q);
+                    self._get_territory(q, boundaries);
+                }
+            }
+        }
+    }
 }
