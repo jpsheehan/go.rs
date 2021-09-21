@@ -67,39 +67,42 @@ impl State {
     fn render_overlay(&self, ctx: &mut BTerm) {
         ctx.set_active_console(CONSOLE_OVERLAY);
         ctx.cls();
-        let p = self.get_mouse_point(ctx);
-        if (p.x as usize) < self.game.get_size() && (p.y as usize) < self.game.get_size() {
-            let stone = self.game.get(p);
-            if stone != CellState::None {
-                let mut group = Vec::new();
-                self.game.get_group(stone, p, &mut group);
-                for q in group {
-                    ctx.add_sprite(
-                        Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_BLUE,
-                    );
-                }
 
-                let liberties = self.game.get_liberties(p);
-                for q in liberties {
-                    ctx.add_sprite(
-                        Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_RED,
-                    );
-                }
-                // ctx.print(0, 0, format!("{} S, {} L", group.len(), liberties));
-            } else {
-                for b in self.game.get_boundary(p) {
-                    ctx.add_sprite(
-                        Rect::with_size((b.x + 1) * 32, (b.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_PINK,
-                    );
+        if ctx.shift {
+            let p = self.get_mouse_point(ctx);
+            if (p.x as usize) < self.game.get_size() && (p.y as usize) < self.game.get_size() {
+                let stone = self.game.get(p);
+                if stone != CellState::None {
+                    let mut group = Vec::new();
+                    self.game.get_group(stone, p, &mut group);
+                    for q in group {
+                        ctx.add_sprite(
+                            Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
+                            0,
+                            RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+                            SPR_BLUE,
+                        );
+                    }
+
+                    let liberties = self.game.get_liberties(p);
+                    for q in liberties {
+                        ctx.add_sprite(
+                            Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
+                            0,
+                            RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+                            SPR_RED,
+                        );
+                    }
+                    // ctx.print(0, 0, format!("{} S, {} L", group.len(), liberties));
+                } else {
+                    for b in self.game.get_boundary(p) {
+                        ctx.add_sprite(
+                            Rect::with_size((b.x + 1) * 32, (b.y + 1) * 32, 32, 32),
+                            0,
+                            RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
+                            SPR_PINK,
+                        );
+                    }
                 }
             }
         }
@@ -185,7 +188,7 @@ impl State {
         GPoint::new(mx, my)
     }
 
-    fn render_ghost(&self, ctx: &mut BTerm) {
+    fn render_ghost(&mut self, ctx: &mut BTerm) {
         let p = self.get_mouse_point(ctx);
         if self.game.can_place(p) {
             let idx = match self.game.get_turn() {
@@ -203,7 +206,7 @@ impl State {
     }
 }
 
-const BOARD_SIZE: usize = 13;
+const BOARD_SIZE: usize = 31;
 const DISPLAY_WIDTH: usize = (BOARD_SIZE + 2) * 32;
 const DISPLAY_HEIGHT: usize = (BOARD_SIZE + 2) * 32;
 

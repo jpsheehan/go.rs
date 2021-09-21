@@ -7,6 +7,7 @@ pub struct Board {
     captured_stones: Vec<i32>,
     ko: Option<Point>,
     pub allow_suicide: bool,
+    placement_cache: Vec<Option<bool>>,
 }
 
 impl Board {
@@ -21,6 +22,7 @@ impl Board {
         }
 
         let captured_stones = vec![0, 0, 0];
+        let placement_cache = vec![Some(true); size * size];
 
         Board {
             cells,
@@ -29,11 +31,13 @@ impl Board {
             turn: CellState::Black,
             ko: None,
             allow_suicide: false,
+            placement_cache,
         }
     }
 
-    pub fn from_str(s: &str, turn: CellState) -> Board {
+    pub fn from_str(s: &str, turn: CellState) -> Option<Board> {
         let mut cells = Vec::new();
+        let mut size: usize = 0;
 
         for line in s.trim().lines() {
             let mut row: Vec<CellState> = Vec::new();
@@ -44,19 +48,32 @@ impl Board {
                     _ => CellState::None,
                 });
             }
+            if size == 0 {
+                size = row.len()
+            } else {
+                if size != row.len() {
+                    return None;
+                }
+            }
             cells.push(row);
         }
-        let size = cells.len() as usize;
-        let captured_stones = vec![0, 0, 0];
 
-        Board {
+        if cells.len() != size {
+            return None;
+        }
+
+        let captured_stones = vec![0, 0, 0];
+        let placement_cache = vec![None; size * size];
+
+        Some(Board {
             turn,
             size,
             cells,
             captured_stones,
             ko: None,
             allow_suicide: false,
-        }
+            placement_cache,
+        })
     }
 
     pub fn get_size(&self) -> usize {
@@ -71,6 +88,7 @@ impl Board {
         self.turn = CellState::Black;
         self.captured_stones = vec![0, 0, 0];
         self.ko = None;
+        self.placement_cache = vec![Some(true); self.size * self.size];
         for j in 0..self.size {
             for i in 0..self.size {
                 self.set(Point::new(i as i32, j as i32), CellState::None);
@@ -95,6 +113,7 @@ impl Board {
             } else {
                 self.ko = None;
             }
+            self.placement_cache = vec![None; self.size * self.size];
             self.turn = self.turn.get_other_player();
             //self.print();
             //println!();
@@ -143,18 +162,23 @@ impl Board {
         adjacent
     }
 
-    pub fn can_place(&self, p: Point) -> bool {
+    pub fn can_place(&mut self, p: Point) -> bool {
         if p.x as usize >= self.size || p.y as usize >= self.size {
             return false;
+        }
+        let cache_idx: usize = p.y as usize * self.size + p.x as usize;
+        if let Some(cached) = self.placement_cache[cache_idx] {
+            return cached;
         }
 
         if let Some(ko) = self.ko {
             if ko == p {
+                self.placement_cache[cache_idx] = Some(false);
                 return false;
             }
         }
 
-        match self.get(p) {
+        let can_place = match self.get(p) {
             CellState::None => {
                 if self.allow_suicide {
                     true
@@ -163,7 +187,10 @@ impl Board {
                 }
             }
             _ => false,
-        }
+        };
+
+        self.placement_cache[cache_idx] = Some(can_place);
+        can_place
     }
 
     pub fn get_captured_stones(&self, p: CellState) -> i32 {
