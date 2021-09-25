@@ -13,28 +13,28 @@ use sdl2::surface::Surface;
 use go_core::Point as GPoint;
 use go_core::*;
 
-const BOARD_SIZE: u32 = 9;
+const BOARD_SIZE: u32 = 13;
 
 enum SpriteSheet {
-    CROSS,
-    CROSS_DOT,
-    SOUTH,
-    NORTH,
+    Cross,
+    CrossDot,
+    South,
+    North,
 
-    EAST,
-    WEST,
-    NORTHWEST,
-    SOUTHWEST,
+    East,
+    West,
+    Northwest,
+    Southwest,
 
-    SOUTHEAST,
-    NORTHEAST,
-    RED_DOT,
-    BLUE_DOT,
+    Southeast,
+    Northeast,
+    _RedDot,
+    _BlueDot,
 
-    GREEN_DOT,
-    PURPLE_DOT,
-    WHITE,
-    BLACK,
+    _GreenDot,
+    _PinkDot,
+    White,
+    Black,
 }
 const SPRITESHEET_ROWS: i32 = 4;
 const SPRITESHEET_COLS: i32 = 4;
@@ -47,25 +47,25 @@ fn create_board_texture(surface: &mut Surface, size: u32) -> Result<(), String> 
 
     for y in 0..size {
         for x in 0..size {
-            let mut spr: SpriteSheet = SpriteSheet::CROSS;
+            let mut spr: SpriteSheet = SpriteSheet::Cross;
             if x == 0 && y == 0 {
-                spr = SpriteSheet::NORTHWEST;
+                spr = SpriteSheet::Northwest;
             } else if x == 0 && y == size - 1 {
-                spr = SpriteSheet::SOUTHWEST;
+                spr = SpriteSheet::Southwest;
             } else if x == size - 1 && y == 0 {
-                spr = SpriteSheet::NORTHEAST;
+                spr = SpriteSheet::Northeast;
             } else if x == size - 1 && y == size - 1 {
-                spr = SpriteSheet::SOUTHEAST;
+                spr = SpriteSheet::Southeast;
             } else if x == 0 {
-                spr = SpriteSheet::WEST;
+                spr = SpriteSheet::West;
             } else if x == size - 1 {
-                spr = SpriteSheet::EAST;
+                spr = SpriteSheet::East;
             } else if y == 0 {
-                spr = SpriteSheet::NORTH;
+                spr = SpriteSheet::North;
             } else if y == size - 1 {
-                spr = SpriteSheet::SOUTH;
+                spr = SpriteSheet::South;
             } else if is_dotted(size, x, y) {
-                spr = SpriteSheet::CROSS_DOT;
+                spr = SpriteSheet::CrossDot;
             }
             let dst_rect = Rect::new((x * W) as i32, (y * H) as i32, W, H);
             blit_from_spritesheet(&sprite_sheet, surface, dst_rect, spr)?;
@@ -105,8 +105,8 @@ fn main() -> Result<(), String> {
     let window = video_subsystem
         .window(
             &format!("Go {}x{}", BOARD_SIZE, BOARD_SIZE),
-            (BOARD_SIZE + 2) * 32,
-            (BOARD_SIZE + 2) * 32,
+            (BOARD_SIZE + 2) * W,
+            (BOARD_SIZE + 2) * H,
         )
         .position_centered()
         .build()
@@ -122,8 +122,6 @@ fn main() -> Result<(), String> {
 
     canvas.set_draw_color(Color::WHITE);
 
-    let timer = sdl_context.timer()?;
-
     let mut event_pump = sdl_context.event_pump()?;
 
     let mut board_surface: Surface = Surface::new(0, 0, sdl2::pixels::PixelFormatEnum::RGB565)?;
@@ -138,7 +136,7 @@ fn main() -> Result<(), String> {
         &sprite_sheet,
         &mut spr_white,
         Rect::new(0, 0, 32, 32),
-        SpriteSheet::WHITE,
+        SpriteSheet::White,
     )?;
     let tex_white = spr_white
         .as_texture(&texture_creator)
@@ -152,7 +150,7 @@ fn main() -> Result<(), String> {
         &sprite_sheet,
         &mut spr_black,
         Rect::new(0, 0, 32, 32),
-        SpriteSheet::BLACK,
+        SpriteSheet::Black,
     )?;
     let tex_black = spr_black
         .as_texture(&texture_creator)
@@ -262,7 +260,7 @@ fn main() -> Result<(), String> {
 
         canvas.present();
 
-        std::thread::sleep(Duration::from_millis(16));
+        std::thread::sleep(Duration::from_millis(1000 / 30));
     }
 
     Ok(())
