@@ -1,239 +1,269 @@
 mod go_core;
-use bracket_lib::prelude::*;
+
+use std::path::Path;
+use std::time::Duration;
+
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use sdl2::rect::Point;
+use sdl2::rect::Rect;
+use sdl2::surface::Surface;
+
 use go_core::Point as GPoint;
 use go_core::*;
 
-const CONSOLE_SIMPLE: usize = 0;
-const CONSOLE_BOARD: usize = 1;
-const CONSOLE_STONES: usize = 2;
-const CONSOLE_OVERLAY: usize = 3;
+const BOARD_SIZE: u32 = 9;
 
-const SPR_CROSS: usize = 0;
-const SPR_CROSS_DOT: usize = 1;
-const SPR_SOUTH: usize = 2;
-const SPR_NORTH: usize = 3;
-const SPR_EAST: usize = 4;
-const SPR_WEST: usize = 5;
-const SPR_NORTHWEST: usize = 6;
-const SPR_SOUTHWEST: usize = 7;
-const SPR_SOUTHEAST: usize = 8;
-const SPR_NORTHEAST: usize = 9;
-const SPR_RED: usize = 10;
-const SPR_BLUE: usize = 11;
-//const SPR_GREEN: usize = 12;
-const SPR_PINK: usize = 13;
-const SPR_WHITE: usize = 14;
-const SPR_BLACK: usize = 15;
+enum SpriteSheet {
+    CROSS,
+    CROSS_DOT,
+    SOUTH,
+    NORTH,
 
-struct State {
-    game: Board,
+    EAST,
+    WEST,
+    NORTHWEST,
+    SOUTHWEST,
+
+    SOUTHEAST,
+    NORTHEAST,
+    RED_DOT,
+    BLUE_DOT,
+
+    GREEN_DOT,
+    PURPLE_DOT,
+    WHITE,
+    BLACK,
+}
+const SPRITESHEET_ROWS: i32 = 4;
+const SPRITESHEET_COLS: i32 = 4;
+const W: u32 = 32;
+const H: u32 = 32;
+
+fn create_board_texture(surface: &mut Surface, size: u32) -> Result<(), String> {
+    let sprite_sheet = Surface::load_bmp(Path::new("resources/board_lines.bmp"))?;
+    *surface = Surface::new(size * W, size * H, sprite_sheet.pixel_format_enum())?;
+
+    for y in 0..size {
+        for x in 0..size {
+            let mut spr: SpriteSheet = SpriteSheet::CROSS;
+            if x == 0 && y == 0 {
+                spr = SpriteSheet::NORTHWEST;
+            } else if x == 0 && y == size - 1 {
+                spr = SpriteSheet::SOUTHWEST;
+            } else if x == size - 1 && y == 0 {
+                spr = SpriteSheet::NORTHEAST;
+            } else if x == size - 1 && y == size - 1 {
+                spr = SpriteSheet::SOUTHEAST;
+            } else if x == 0 {
+                spr = SpriteSheet::WEST;
+            } else if x == size - 1 {
+                spr = SpriteSheet::EAST;
+            } else if y == 0 {
+                spr = SpriteSheet::NORTH;
+            } else if y == size - 1 {
+                spr = SpriteSheet::SOUTH;
+            } else if is_dotted(size, x, y) {
+                spr = SpriteSheet::CROSS_DOT;
+            }
+            let dst_rect = Rect::new((x * W) as i32, (y * H) as i32, W, H);
+            blit_from_spritesheet(&sprite_sheet, surface, dst_rect, spr)?;
+        }
+    }
+
+    Ok(())
 }
 
-impl GameState for State {
-    fn tick(&mut self, ctx: &mut BTerm) {
-        self.render(ctx);
-    }
-}
-
-impl State {
-    pub fn render(&mut self, ctx: &mut BTerm) {
-        if ctx.left_click {
-            let p = self.get_mouse_point(ctx);
-            if self.game.can_place(p) {
-                self.game.place(p);
-            }
-        }
-        if ctx.control {
-            self.game.allow_suicide = true;
-        } else {
-            self.game.allow_suicide = false;
-        }
-
-        ctx.set_active_console(CONSOLE_SIMPLE);
-        ctx.cls_bg(RGBA::from_f32(1.0, 1.0, 1.0, 1.0));
-
-        // if ctx.shift {
-        //     for y in 0..self.game.get_size() {
-        //         ctx.print_color(0, self.game.get_size() as i32 - y as i32 - 1, RGBA::from_f32(0.0, 0.0, 0.0, 1.0), RGBA::from_f32(1.0, 1.0, 1.0, 1.0), format!("{}", y + 1));
-        //     }
-        // }
-
-        self.render_board(ctx);
-        self.render_stones(ctx);
-        self.render_ghost(ctx);
-        self.render_overlay(ctx);
-    }
-
-    fn render_overlay(&self, ctx: &mut BTerm) {
-        ctx.set_active_console(CONSOLE_OVERLAY);
-        ctx.cls();
-        let p = self.get_mouse_point(ctx);
-        if (p.x as usize) < self.game.get_size() && (p.y as usize) < self.game.get_size() {
-            let stone = self.game.get(p);
-            if stone != CellState::None {
-                let mut group = Vec::new();
-                self.game.get_group(stone, p, &mut group);
-                for q in group {
-                    ctx.add_sprite(
-                        Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_BLUE,
-                    );
-                }
-
-                let liberties = self.game.get_liberties(p);
-                for q in liberties {
-                    ctx.add_sprite(
-                        Rect::with_size((q.x + 1) * 32, (q.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_RED,
-                    );
-                }
-                // ctx.print(0, 0, format!("{} S, {} L", group.len(), liberties));
-            } else {
-                for b in self.game.get_boundary(p) {
-                    ctx.add_sprite(
-                        Rect::with_size((b.x + 1) * 32, (b.y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        SPR_PINK,
-                    );
-                }
-            }
-        }
-    }
-
-    fn render_stones(&self, ctx: &mut BTerm) {
-        ctx.set_active_console(CONSOLE_STONES);
-        ctx.cls();
-        for y in 0..self.game.get_size() {
-            for x in 0..self.game.get_size() {
-                let state = self.game.get(GPoint::new(x as i32, y as i32));
-                if state != CellState::None {
-                    let idx = match state {
-                        CellState::Black => SPR_BLACK,
-                        CellState::White => SPR_WHITE,
-                        _ => 0,
-                    };
-                    ctx.add_sprite(
-                        Rect::with_size((x + 1) * 32, (y + 1) * 32, 32, 32),
-                        0,
-                        RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                        idx,
-                    );
-                }
-            }
-        }
-    }
-
-    fn render_board(&self, ctx: &mut BTerm) {
-        ctx.set_active_console(CONSOLE_BOARD);
-        ctx.cls();
-        for y in 0..self.game.get_size() {
-            for x in 0..self.game.get_size() {
-                let mut idx: usize = SPR_CROSS;
-                if x == 0 && y == 0 {
-                    idx = SPR_NORTHWEST;
-                } else if x == 0 && y == self.game.get_size() - 1 {
-                    idx = SPR_SOUTHWEST;
-                } else if x == self.game.get_size() - 1 && y == 0 {
-                    idx = SPR_NORTHEAST;
-                } else if x == self.game.get_size() - 1 && y == self.game.get_size() - 1 {
-                    idx = SPR_SOUTHEAST;
-                } else if x == 0 {
-                    idx = SPR_WEST;
-                } else if x == self.game.get_size() - 1 {
-                    idx = SPR_EAST;
-                } else if y == 0 {
-                    idx = SPR_NORTH;
-                } else if y == self.game.get_size() - 1 {
-                    idx = SPR_SOUTH;
-                } else {
-                    if self.game.get_size() == 19 {
-                        if (x == 3 || x == 9 || x == 15) && (y == 3 || y == 9 || y == 15) {
-                            idx = SPR_CROSS_DOT;
-                        }
-                    } else if self.game.get_size() == 13 {
-                        if ((x == 3 || x == 9) && (y == 3 || y == 9)) || (x == 6 && y == 6) {
-                            idx = SPR_CROSS_DOT;
-                        }
-                    } else if self.game.get_size() == 9 {
-                        if (x == 2 || x == 6) && (y == 2 || y == 6) {
-                            idx = SPR_CROSS_DOT;
-                        }
-                    } else if self.game.get_size() == 5 {
-                        if x == 2 && y == 2 {
-                            idx = SPR_CROSS_DOT;
-                        }
-                    }
-                }
-                ctx.add_sprite(
-                    Rect::with_size((x + 1) * 32, (y + 1) * 32, 32, 32),
-                    0,
-                    RGBA::from_f32(1.0, 1.0, 1.0, 1.0),
-                    idx,
-                );
-            }
-        }
-    }
-
-    fn get_mouse_point(&self, ctx: &BTerm) -> GPoint {
-        let mx = ctx.mouse_pos.0 / 32 - 1;
-        let my = ctx.mouse_pos.1 / 32 - 1;
-        GPoint::new(mx, my)
-    }
-
-    fn render_ghost(&self, ctx: &mut BTerm) {
-        let p = self.get_mouse_point(ctx);
-        if self.game.can_place(p) {
-            let idx = match self.game.get_turn() {
-                CellState::Black => 15,
-                CellState::White => 14,
-                _ => 0,
-            };
-            ctx.add_sprite(
-                Rect::with_size((p.x + 1) * 32, (p.y + 1) * 32, 32, 32),
-                0,
-                RGBA::from_f32(1.0, 1.0, 1.0, 0.7),
-                idx,
-            );
-        }
+fn is_dotted(size: u32, x: u32, y: u32) -> bool {
+    if size == 9 {
+        (x == 2 || x == 6) && (y == 2 || y == 6)
+    } else {
+        false
     }
 }
 
-const BOARD_SIZE: usize = 13;
-const DISPLAY_WIDTH: usize = (BOARD_SIZE + 2) * 32;
-const DISPLAY_HEIGHT: usize = (BOARD_SIZE + 2) * 32;
+fn blit_from_spritesheet(
+    src: &Surface,
+    dst: &mut Surface,
+    dst_rect: Rect,
+    spr: SpriteSheet,
+) -> Result<(), String> {
+    let idx = spr as i32;
+    let src_x = (idx as i32 % SPRITESHEET_COLS) * W as i32;
+    let src_y = (idx as i32 / SPRITESHEET_ROWS) * H as i32;
+    let src_rect = Rect::new(src_x, src_y, W, H);
+    src.blit(src_rect, dst, dst_rect)?;
 
-fn main() -> BError {
-    let board = Board::new(BOARD_SIZE);
-    let context = BTermBuilder::simple(BOARD_SIZE + 2, BOARD_SIZE + 2)?
-        .with_title(format!("Go {}x{}", BOARD_SIZE, BOARD_SIZE))
-        .with_tile_dimensions(32, 32)
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // board
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // stones
-        .with_sprite_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, 0) // overlay
-        .with_sprite_sheet(
-            SpriteSheet::new("resources/board_lines.png")
-                .add_sprite(Rect::with_size(0, 96, 32, 32))
-                .add_sprite(Rect::with_size(32, 96, 32, 32))
-                .add_sprite(Rect::with_size(64, 96, 32, 32))
-                .add_sprite(Rect::with_size(96, 96, 32, 32))
-                .add_sprite(Rect::with_size(0, 64, 32, 32))
-                .add_sprite(Rect::with_size(32, 64, 32, 32))
-                .add_sprite(Rect::with_size(64, 64, 32, 32))
-                .add_sprite(Rect::with_size(96, 64, 32, 32))
-                .add_sprite(Rect::with_size(0, 32, 32, 32))
-                .add_sprite(Rect::with_size(32, 32, 32, 32))
-                .add_sprite(Rect::with_size(64, 32, 32, 32))
-                .add_sprite(Rect::with_size(96, 32, 32, 32))
-                .add_sprite(Rect::with_size(0, 0, 32, 32))
-                .add_sprite(Rect::with_size(32, 0, 32, 32))
-                .add_sprite(Rect::with_size(64, 0, 32, 32))
-                .add_sprite(Rect::with_size(96, 0, 32, 32)),
+    Ok(())
+}
+
+fn main() -> Result<(), String> {
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
+
+    let window = video_subsystem
+        .window(
+            &format!("Go {}x{}", BOARD_SIZE, BOARD_SIZE),
+            (BOARD_SIZE + 2) * 32,
+            (BOARD_SIZE + 2) * 32,
         )
-        .build()?;
-    main_loop(context, State { game: board })
+        .position_centered()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut canvas = window
+        .into_canvas()
+        .accelerated()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let texture_creator = canvas.texture_creator();
+
+    canvas.set_draw_color(Color::WHITE);
+
+    let timer = sdl_context.timer()?;
+
+    let mut event_pump = sdl_context.event_pump()?;
+
+    let mut board_surface: Surface = Surface::new(0, 0, sdl2::pixels::PixelFormatEnum::RGB565)?;
+    create_board_texture(&mut board_surface, BOARD_SIZE)?;
+    let board_texture = board_surface
+        .as_texture(&texture_creator)
+        .expect("Couldn't convert to texture");
+
+    let sprite_sheet = Surface::load_bmp(Path::new("resources/board_lines.bmp"))?;
+    let mut spr_white = Surface::new(32, 32, sprite_sheet.pixel_format_enum())?;
+    blit_from_spritesheet(
+        &sprite_sheet,
+        &mut spr_white,
+        Rect::new(0, 0, 32, 32),
+        SpriteSheet::WHITE,
+    )?;
+    let tex_white = spr_white
+        .as_texture(&texture_creator)
+        .expect("convert to texture");
+    let mut tex_white_ghost = sdl2::render::Texture::from_surface(&spr_white, &texture_creator)
+        .expect("convert to texture");
+    tex_white_ghost.set_alpha_mod(160);
+
+    let mut spr_black = Surface::new(32, 32, sprite_sheet.pixel_format_enum())?;
+    blit_from_spritesheet(
+        &sprite_sheet,
+        &mut spr_black,
+        Rect::new(0, 0, 32, 32),
+        SpriteSheet::BLACK,
+    )?;
+    let tex_black = spr_black
+        .as_texture(&texture_creator)
+        .expect("convert to texture");
+    let mut tex_black_ghost = sdl2::render::Texture::from_surface(&spr_black, &texture_creator)
+        .expect("convert to texture");
+    tex_black_ghost.set_alpha_mod(160);
+
+    let mut game = Board::new(BOARD_SIZE as usize);
+
+    let mut running = true;
+    let mut mouse_pos = Point::new(0, 0);
+    while running {
+        let mut place_stone = false;
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    running = false;
+                }
+                Event::MouseMotion { x, y, .. } => {
+                    mouse_pos = Point::new(x, y);
+                }
+                Event::MouseButtonDown { .. } => {
+                    place_stone = true;
+                }
+                _ => {}
+            }
+        }
+
+        if place_stone {
+            let x = mouse_pos.x() / W as i32 - 1;
+            let y = mouse_pos.y() / H as i32 - 1;
+            let p = GPoint::new(x, y);
+            if game.can_place(p) {
+                game.place(p);
+            }
+        }
+
+        canvas.clear();
+
+        // render the board
+        canvas.copy_ex(
+            &board_texture,
+            Some(Rect::new(0, 0, BOARD_SIZE * 32, BOARD_SIZE * 32)),
+            Some(Rect::new(32, 32, BOARD_SIZE * 32, BOARD_SIZE * 32)),
+            0.0,
+            None,
+            false,
+            false,
+        )?;
+
+        // render the stones
+        for y in 0..BOARD_SIZE {
+            for x in 0..BOARD_SIZE {
+                let stone = match game.get(GPoint::new(x as i32, y as i32)) {
+                    CellState::White => Some(&tex_white),
+                    CellState::Black => Some(&tex_black),
+                    _ => None,
+                };
+                if let Some(sprite) = stone {
+                    canvas.copy_ex(
+                        sprite,
+                        Some(Rect::new(0, 0, W, H)),
+                        Some(Rect::new((x as i32 + 1) * 32, (y as i32 + 1) * 32, W, H)),
+                        0.0,
+                        None,
+                        false,
+                        false,
+                    )?;
+                }
+            }
+        }
+
+        // render the ghost stone
+        let ghost_x = mouse_pos.x() / W as i32 - 1;
+        let ghost_y = mouse_pos.y() / H as i32 - 1;
+        if game.can_place(GPoint::new(ghost_x, ghost_y)) {
+            if ghost_x >= 0
+                && ghost_y >= 0
+                && ghost_x < BOARD_SIZE as i32
+                && ghost_y < BOARD_SIZE as i32
+            {
+                canvas.copy_ex(
+                    if game.get_turn() == CellState::White {
+                        &tex_white_ghost
+                    } else {
+                        &tex_black_ghost
+                    },
+                    Some(Rect::new(0, 0, W, H)),
+                    Some(Rect::new(
+                        (ghost_x + 1) * W as i32,
+                        (ghost_y + 1) * H as i32,
+                        W,
+                        H,
+                    )),
+                    0.0,
+                    None,
+                    false,
+                    false,
+                )?;
+            }
+        }
+
+        canvas.present();
+
+        std::thread::sleep(Duration::from_millis(16));
+    }
+
+    Ok(())
 }
